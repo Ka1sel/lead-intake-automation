@@ -8,7 +8,7 @@ const codeNode = (name, fn, code, position) => ({
 const workflow = {
   name:'Lead Intake & Qualification', active:false, settings:{executionOrder:'v1'},
   nodes:[
-    {name:'Receive Inquiry',id:'receive-inquiry',type:'n8n-nodes-base.webhook',typeVersion:2,position:[0,0],parameters:{httpMethod:'POST',path:'hanz-lead-intake',responseMode:'responseNode',options:{}}},
+    {name:'Receive Inquiry',id:'receive-inquiry',webhookId:'1f896004-1d55-4eb3-ad6a-b727371034c8',type:'n8n-nodes-base.webhook',typeVersion:2,position:[0,0],parameters:{httpMethod:'POST',path:'hanz-lead-intake',responseMode:'responseNode',options:{}}},
     codeNode('Validate Inquiry', normalizeLead, 'return $input.all().map(item => ({json:normalizeLead(item.json.body)}));', [240,0]),
     {name:'Valid Inquiry?',id:'valid-inquiry',type:'n8n-nodes-base.if',typeVersion:2.2,position:[480,0],parameters:{conditions:{options:{caseSensitive:true,leftValue:'',typeValidation:'strict',version:2},conditions:[{id:'valid',leftValue:'={{ $json.valid }}',rightValue:'',operator:{type:'boolean',operation:'true',singleValue:true}}],combinator:'and'},options:{}}},
     codeNode('Qualify Lead', qualifyLead, 'return $input.all().map(item => ({json:{...item.json, qualification:qualifyLead(item.json.lead)}}));', [720,-100]),

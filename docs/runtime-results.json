@@ -1,0 +1,48 @@
+{
+  "n8nVersion": "2.47.3",
+  "scenarios": [
+    {
+      "scenario": "priority",
+      "httpStatus": 200,
+      "score": 100,
+      "priority": "Priority",
+      "automaticallySent": false
+    },
+    {
+      "scenario": "standard",
+      "httpStatus": 200,
+      "score": 65,
+      "priority": "Standard",
+      "automaticallySent": false
+    },
+    {
+      "scenario": "discovery",
+      "httpStatus": 200,
+      "score": 30,
+      "priority": "Discovery",
+      "automaticallySent": false
+    },
+    {
+      "scenario": "missing-fields",
+      "httpStatus": 422,
+      "errors": [
+        "name must contain 2-100 characters.",
+        "email must contain 3-254 characters.",
+        "company must contain 2-100 characters.",
+        "message must contain 20-4000 characters.",
+        "email must be a valid address.",
+        "Choose a supported service.",
+        "Choose a supported timeline.",
+        "budgetUsd must be an integer from 0 to 1000000.",
+        "Consent to processing this inquiry is required."
+      ]
+    },
+    {
+      "scenario": "missing-consent",
+      "httpStatus": 422,
+      "errors": [
+        "Consent to processing this inquiry is required."
+      ]
+    }
+  ]
+}

@@ -4,6 +4,8 @@ A small n8n portfolio prototype that turns a JSON inquiry into a validated, prio
 
 **Stack:** n8n, JavaScript, HTTP webhooks, JSON.
 
+**Verified:** Nine local regression tests and five real HTTP scenarios passed in an isolated n8n 2.47.3 instance. See [the verification record](docs/VERIFICATION.md).
+
 **Scope:** Validation, normalization, transparent rule-based scoring, and a human-review handoff. This version does not use AI, store leads in a CRM, deduplicate submissions, or send email. Its scoring thresholds are illustrative business rules, not a measured prediction of conversion.
 
 ## Business problem
@@ -33,7 +35,8 @@ flowchart LR
 ```powershell
 $samples = Get-Content examples/leads.json -Raw | ConvertFrom-Json
 $body = $samples[0].input | ConvertTo-Json
-Invoke-RestMethod -Method Post -Uri 'http://localhost:5678/webhook-test/hanz-lead-intake' -ContentType 'application/json' -Body $body
+$webhookUrl = 'PASTE_THE_TEST_URL_FROM_YOUR_RECEIVE_INQUIRY_NODE'
+Invoke-RestMethod -Method Post -Uri $webhookUrl -ContentType 'application/json' -Body $body
 ```
 
 No Google or AI credentials are needed for this version. Nothing is sent to the sample email addresses.
@@ -69,7 +72,7 @@ With Node.js 22 or later, run `npm run build` and `npm test`. No dependencies ne
 
 The build embeds the functions from `src/qualification.mjs` into n8n Code nodes. Nine regression tests cover the three sample priorities, normalization, malformed submissions, invalid field types, consent, injection-like contact fields, scoring boundaries, and execution of the exported Code-node bodies.
 
-Local logic checks pass. Runtime import and webhook checks in n8n are recorded separately in `docs/VERIFICATION.md`; local JavaScript checks alone do not establish n8n compatibility.
+Both local logic checks and runtime import/webhook checks pass. Actual HTTP observations are recorded separately in `docs/VERIFICATION.md` and `docs/runtime-results.json`. These checks use synthetic inquiries and do not establish production readiness.
 
 ## Development notes and next steps
 

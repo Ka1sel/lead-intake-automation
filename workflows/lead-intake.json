@@ -8,6 +8,7 @@
     {
       "name": "Receive Inquiry",
       "id": "receive-inquiry",
+      "webhookId": "1f896004-1d55-4eb3-ad6a-b727371034c8",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2,
       "position": [

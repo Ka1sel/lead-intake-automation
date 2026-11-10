@@ -44,6 +44,9 @@ test('qualification thresholds are deterministic at the boundaries',()=>{
   assert.equal(qualifyLead({...base,budgetUsd:5000,timeline:'exploring'}).score,70);
 });
 test('exported n8n Code nodes execute the same valid and invalid paths',()=>{
+  const webhook=workflow.nodes.find(node=>node.name==='Receive Inquiry');
+  assert.match(webhook.webhookId,/^[a-f0-9-]{36}$/);
+  assert.equal(webhook.parameters.responseMode,'responseNode');
   function run(name,input) {
     const node=workflow.nodes.find(node=>node.name===name);
     return vm.runInNewContext(`(function(){${node.parameters.jsCode}})()`,{$input:{all:()=>[{json:input}]}},{timeout:1000})[0].json;

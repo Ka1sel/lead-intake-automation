@@ -1,0 +1,196 @@
+{
+  "name": "Lead Intake & Qualification",
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "nodes": [
+    {
+      "name": "Receive Inquiry",
+      "id": "receive-inquiry",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        0,
+        0
+      ],
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "hanz-lead-intake",
+        "responseMode": "responseNode",
+        "options": {}
+      }
+    },
+    {
+      "name": "Validate Inquiry",
+      "id": "validate-inquiry",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        240,
+        0
+      ],
+      "parameters": {
+        "jsCode": "function normalizeLead(input) {\n  if (!input || typeof input !== 'object' || Array.isArray(input)) {\n    return { valid: false, errors: ['Expected a JSON object.'] };\n  }\n  const errors = [];\n  const text = (field, min, max) => {\n    const value = typeof input[field] === 'string' ? input[field].trim() : '';\n    if (value.length < min || value.length > max) errors.push(`${field} must contain ${min}-${max} characters.`);\n    if (/[\\r\\n\\u0000]/.test(value) && field !== 'message') errors.push(`${field} must be a single line.`);\n    return value;\n  };\n  const name = text('name', 2, 100);\n  const email = text('email', 3, 254).toLowerCase();\n  const company = text('company', 2, 100);\n  const message = text('message', 20, 4000);\n  if (!/^[^\\s@<>]+@[^\\s@<>]+\\.[^\\s@<>]+$/.test(email)) errors.push('email must be a valid address.');\n  if (!['automation', 'integration', 'reporting'].includes(input.service)) errors.push('Choose a supported service.');\n  if (!['this-month', 'next-quarter', 'exploring'].includes(input.timeline)) errors.push('Choose a supported timeline.');\n  if (typeof input.budgetUsd !== 'number' || !Number.isInteger(input.budgetUsd) || input.budgetUsd < 0 || input.budgetUsd > 1000000) {\n    errors.push('budgetUsd must be an integer from 0 to 1000000.');\n  }\n  if (input.consent !== true) errors.push('Consent to processing this inquiry is required.');\n  if (errors.length) return { valid: false, errors };\n  return {\n    valid: true,\n    lead: {name, email, company, message, service:input.service, timeline:input.timeline, budgetUsd:input.budgetUsd},\n  };\n}\nreturn $input.all().map(item => ({json:normalizeLead(item.json.body)}));"
+      }
+    },
+    {
+      "name": "Valid Inquiry?",
+      "id": "valid-inquiry",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        480,
+        0
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "valid",
+              "leftValue": "={{ $json.valid }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      }
+    },
+    {
+      "name": "Qualify Lead",
+      "id": "qualify-lead",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        720,
+        -100
+      ],
+      "parameters": {
+        "jsCode": "function qualifyLead(lead) {\n  const reasons = [{label:'Complete inquiry', points:20}];\n  const budgetPoints = lead.budgetUsd >= 5000 ? 35 : lead.budgetUsd >= 1000 ? 20 : 0;\n  const timelinePoints = lead.timeline === 'this-month' ? 30 : lead.timeline === 'next-quarter' ? 15 : 0;\n  const servicePoints = lead.service === 'automation' ? 15 : 10;\n  reasons.push({label:'Budget fit', points:budgetPoints});\n  reasons.push({label:'Timeline', points:timelinePoints});\n  reasons.push({label:'Service fit', points:servicePoints});\n  const score = reasons.reduce((total, reason) => total + reason.points, 0);\n  const priority = score >= 75 ? 'Priority' : score >= 40 ? 'Standard' : 'Discovery';\n  const nextStep = priority === 'Priority' ? 'Review for a discovery call' : priority === 'Standard' ? 'Review scope and ask for missing details' : 'Review goals before recommending a service';\n  return {score, priority, reasons, nextStep};\n}\nreturn $input.all().map(item => ({json:{...item.json, qualification:qualifyLead(item.json.lead)}}));"
+      }
+    },
+    {
+      "name": "Prepare Review Handoff",
+      "id": "prepare-review-handoff",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        960,
+        -100
+      ],
+      "parameters": {
+        "jsCode": "function prepareHandoff(lead, qualification) {\n  const request = qualification.priority === 'Priority'\n    ? 'Could you share two suitable times for a discovery call and the tools involved in your current process?'\n    : qualification.priority === 'Standard'\n      ? 'Could you share the main steps in your process, the tools involved, and the outcome you want to improve?'\n      : 'Could you share which repetitive task you want to improve first and roughly how often it happens?';\n  return {\n    status:'Ready for human review',\n    nextStep:qualification.nextStep,\n    draft:{\n      to:lead.email,\n      subject:'Your automation inquiry',\n      body:`Hi ${lead.name},\\n\\nThanks for sharing your inquiry. ${request}\\n\\nBest regards,\\nHanz`,\n      automaticallySent:false,\n    },\n  };\n}\nreturn $input.all().map(item => ({json:{...item.json, handoff:prepareHandoff(item.json.lead,item.json.qualification)}}));"
+      }
+    },
+    {
+      "name": "Return Qualified Lead",
+      "id": "return-qualified",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        1200,
+        -100
+      ],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}",
+        "options": {
+          "responseCode": 200
+        }
+      }
+    },
+    {
+      "name": "Return Validation Errors",
+      "id": "return-invalid",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        720,
+        180
+      ],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}",
+        "options": {
+          "responseCode": 422
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Receive Inquiry": {
+      "main": [
+        [
+          {
+            "node": "Validate Inquiry",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validate Inquiry": {
+      "main": [
+        [
+          {
+            "node": "Valid Inquiry?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Valid Inquiry?": {
+      "main": [
+        [
+          {
+            "node": "Qualify Lead",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Return Validation Errors",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Qualify Lead": {
+      "main": [
+        [
+          {
+            "node": "Prepare Review Handoff",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Review Handoff": {
+      "main": [
+        [
+          {
+            "node": "Return Qualified Lead",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  }
+}

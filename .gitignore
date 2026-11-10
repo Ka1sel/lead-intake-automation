@@ -1,0 +1,7 @@
+.env
+.env.*
+.n8n/
+node_modules/
+private/
+evidence-private/
+*.log

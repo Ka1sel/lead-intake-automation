@@ -1,0 +1,20 @@
+[
+  {
+    "id":"priority",
+    "label":"Ready to automate",
+    "input":{"name":"Alex Rivera","email":"ALEX@example.com","company":"Example Studio","service":"automation","budgetUsd":5000,"timeline":"this-month","message":"We need to connect our intake form to our CRM and remove manual data entry.","consent":true},
+    "expectedPriority":"Priority"
+  },
+  {
+    "id":"standard",
+    "label":"Planning an integration",
+    "input":{"name":"Sam Cruz","email":"sam@example.com","company":"Example Services","service":"integration","budgetUsd":1500,"timeline":"next-quarter","message":"We want to connect our booking tool to our customer records next quarter.","consent":true},
+    "expectedPriority":"Standard"
+  },
+  {
+    "id":"discovery",
+    "label":"Exploring options",
+    "input":{"name":"Taylor Santos","email":"taylor@example.com","company":"Example Shop","service":"reporting","budgetUsd":0,"timeline":"exploring","message":"We are exploring ways to make our weekly reporting easier for the team.","consent":true},
+    "expectedPriority":"Discovery"
+  }
+]

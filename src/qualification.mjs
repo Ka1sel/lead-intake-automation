@@ -1,49 +1,137 @@
-/** Validate one JSON form submission and return only supported fields. */
+// Functions taken from Hanz's reviewed and manually tested n8n export.
+
 export function normalizeLead(input) {
   if (!input || typeof input !== 'object' || Array.isArray(input)) {
-    return { valid: false, errors: ['Expected a JSON object.'] };
+    return {
+      valid: false,
+      errors: ['Expected a JSON object.']
+    };
   }
+
   const errors = [];
+
   const text = (field, min, max) => {
-    const value = typeof input[field] === 'string' ? input[field].trim() : '';
-    if (value.length < min || value.length > max) errors.push(`${field} must contain ${min}-${max} characters.`);
-    if (/[\r\n\u0000]/.test(value) && field !== 'message') errors.push(`${field} must be a single line.`);
+    const value =
+      typeof input[field] === 'string'
+        ? input[field].trim()
+        : '';
+
+    if (value.length < min || value.length > max) {
+      errors.push(
+        `${field} must contain ${min}-${max} characters.`
+      );
+    }
+
+    if (/[\r\n\u0000]/.test(value) && field !== 'message') {
+      errors.push(`${field} must be a single line.`);
+    }
+
     return value;
   };
+
   const name = text('name', 2, 100);
   const email = text('email', 3, 254).toLowerCase();
   const company = text('company', 2, 100);
   const message = text('message', 20, 4000);
-  if (!/^[^\s@<>]+@[^\s@<>]+\.[^\s@<>]+$/.test(email)) errors.push('email must be a valid address.');
-  if (!['automation', 'integration', 'reporting'].includes(input.service)) errors.push('Choose a supported service.');
-  if (!['this-month', 'next-quarter', 'exploring'].includes(input.timeline)) errors.push('Choose a supported timeline.');
-  if (typeof input.budgetUsd !== 'number' || !Number.isInteger(input.budgetUsd) || input.budgetUsd < 0 || input.budgetUsd > 1000000) {
-    errors.push('budgetUsd must be an integer from 0 to 1000000.');
+
+  if (!/^[^\s@<>]+@[^\s@<>]+\.[^\s@<>]+$/.test(email)) {
+    errors.push('email must be a valid address.');
   }
-  if (input.consent !== true) errors.push('Consent to processing this inquiry is required.');
-  if (errors.length) return { valid: false, errors };
+
+  if (!['email-workflows', 'form-to-sheets'].includes(input.service)) {
+    errors.push('Choose email-workflows or form-to-sheets.');
+  }
+
+  if (
+    !['this-month', 'next-quarter', 'exploring'].includes(input.timeline)
+  ) {
+    errors.push('Choose a supported timeline.');
+  }
+
+  // An omitted budget or null means the prospect is undecided.
+  // A provided zero stays zero.
+  const budgetUsd = input.budgetUsd ?? null;
+
+  if (
+    budgetUsd !== null &&
+    (
+      typeof budgetUsd !== 'number' ||
+      !Number.isInteger(budgetUsd) ||
+      budgetUsd < 0 ||
+      budgetUsd > 1000000
+    )
+  ) {
+    errors.push(
+      'budgetUsd must be an integer from 0 to 1000000, or omitted if undecided.'
+    );
+  }
+
+  if (input.consent !== true) {
+    errors.push('Consent to processing this inquiry is required.');
+  }
+
+  if (errors.length > 0) {
+    return {
+      valid: false,
+      errors
+    };
+  }
+
   return {
     valid: true,
-    lead: {name, email, company, message, service:input.service, timeline:input.timeline, budgetUsd:input.budgetUsd},
+    lead: {
+      name,
+      email,
+      company,
+      message,
+      service: input.service,
+      timeline: input.timeline,
+      budgetUsd
+    }
   };
 }
 
-/** Transparent, illustrative business rules. This is not AI scoring. */
 export function qualifyLead(lead) {
-  const reasons = [{label:'Complete inquiry', points:20}];
-  const budgetPoints = lead.budgetUsd >= 5000 ? 35 : lead.budgetUsd >= 1000 ? 20 : 0;
-  const timelinePoints = lead.timeline === 'this-month' ? 30 : lead.timeline === 'next-quarter' ? 15 : 0;
-  const servicePoints = lead.service === 'automation' ? 15 : 10;
-  reasons.push({label:'Budget fit', points:budgetPoints});
-  reasons.push({label:'Timeline', points:timelinePoints});
-  reasons.push({label:'Service fit', points:servicePoints});
-  const score = reasons.reduce((total, reason) => total + reason.points, 0);
-  const priority = score >= 75 ? 'Priority' : score >= 40 ? 'Standard' : 'Discovery';
-  const nextStep = priority === 'Priority' ? 'Review for a discovery call' : priority === 'Standard' ? 'Review scope and ask for missing details' : 'Review goals before recommending a service';
-  return {score, priority, reasons, nextStep};
+  const rules = {
+    'this-month': {
+      priority: 'Priority',
+      reason: 'The prospect wants to start this month.',
+      nextStep:
+        'Review scope and availability before arranging a discovery call.'
+    },
+    'next-quarter': {
+      priority: 'Standard',
+      reason: 'The prospect is planning for next quarter.',
+      nextStep:
+        'Review the process, tools, and desired outcome.'
+    },
+    'exploring': {
+      priority: 'Discovery',
+      reason: 'The prospect is exploring possible improvements.',
+      nextStep:
+        'Ask which repetitive task they want to improve first.'
+    }
+  };
+
+  const rule = rules[lead.timeline];
+
+  if (!rule) {
+    throw new Error('Unsupported timeline reached qualification.');
+  }
+
+  return {
+    priority: rule.priority,
+    reasons: [
+      'The selected service is supported.',
+      rule.reason,
+      lead.budgetUsd === null
+        ? 'Budget is undecided and can be discussed during review.'
+        : 'Budget is provided for discussion and does not affect review order.'
+    ],
+    nextStep: rule.nextStep
+  };
 }
 
-/** Produce a review packet and a plain-text draft; this function never sends mail. */
 export function prepareHandoff(lead, qualification) {
   const request = qualification.priority === 'Priority'
     ? 'Could you share two suitable times for a discovery call and the tools involved in your current process?'

@@ -1,0 +1,79 @@
+{
+  "scope": "Credential-free review of the supplied export. No external Google Sheets requests or live n8n executions performed by this script.",
+  "originalNodeCount": 8,
+  "originalActive": false,
+  "pinnedNodes": 0,
+  "originalCredentialBindings": 1,
+  "checks": [
+    {
+      "name": "email-workflows / this-month produces Priority and an unsent draft",
+      "result": "PASS"
+    },
+    {
+      "name": "email-workflows / next-quarter produces Standard and an unsent draft",
+      "result": "PASS"
+    },
+    {
+      "name": "email-workflows / exploring produces Discovery and an unsent draft",
+      "result": "PASS"
+    },
+    {
+      "name": "form-to-sheets / this-month produces Priority and an unsent draft",
+      "result": "PASS"
+    },
+    {
+      "name": "form-to-sheets / next-quarter produces Standard and an unsent draft",
+      "result": "PASS"
+    },
+    {
+      "name": "form-to-sheets / exploring produces Discovery and an unsent draft",
+      "result": "PASS"
+    },
+    {
+      "name": "omitted and explicit-null budgets normalize to null and are explained as undecided",
+      "result": "PASS"
+    },
+    {
+      "name": "zero budget remains zero and budget does not change priority",
+      "result": "PASS"
+    },
+    {
+      "name": "invalid budget types and values are rejected",
+      "result": "PASS"
+    },
+    {
+      "name": "unsupported service and timeline are rejected",
+      "result": "PASS"
+    },
+    {
+      "name": "missing or non-boolean consent is rejected",
+      "result": "PASS"
+    },
+    {
+      "name": "normalization trims text, lowercases email, and discards extra fields",
+      "result": "PASS"
+    },
+    {
+      "name": "bad shapes, missing fields, invalid email, short message, and multiline contacts fail",
+      "result": "PASS"
+    },
+    {
+      "name": "Sheets appends the expected eleven fields and preserves zero in budget mapping",
+      "result": "PASS"
+    },
+    {
+      "name": "valid branch reaches Sheets before success response and invalid branch bypasses Sheets",
+      "result": "PASS"
+    },
+    {
+      "name": "response references handoff data and uses 200 / 422 status codes",
+      "result": "PASS"
+    },
+    {
+      "name": "sanitized copy removes account bindings, original sheet reference and instance metadata",
+      "result": "PASS"
+    }
+  ],
+  "passed": 17,
+  "failed": 0
+}

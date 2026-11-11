@@ -1,49 +1,37 @@
 {
   "name": "Lead Intake & Qualification",
-  "active": false,
-  "settings": {
-    "executionOrder": "v1"
-  },
   "nodes": [
     {
-      "name": "Receive Inquiry",
-      "id": "receive-inquiry",
-      "webhookId": "1f896004-1d55-4eb3-ad6a-b727371034c8",
-      "type": "n8n-nodes-base.webhook",
-      "typeVersion": 2,
-      "position": [
-        0,
-        0
-      ],
       "parameters": {
         "httpMethod": "POST",
         "path": "hanz-lead-intake",
         "responseMode": "responseNode",
         "options": {}
-      }
+      },
+      "name": "Receive Inquiry",
+      "id": "242e2f96-84f3-44ae-ae30-fd8ed9576a97",
+      "webhookId": "1f896004-1d55-4eb3-ad6a-b727371034c8",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        -720,
+        112
+      ]
     },
     {
+      "parameters": {
+        "jsCode": "function normalizeLead(input) {\n  if (!input || typeof input !== 'object' || Array.isArray(input)) {\n    return {\n      valid: false,\n      errors: ['Expected a JSON object.']\n    };\n  }\n\n  const errors = [];\n\n  const text = (field, min, max) => {\n    const value =\n      typeof input[field] === 'string'\n        ? input[field].trim()\n        : '';\n\n    if (value.length < min || value.length > max) {\n      errors.push(\n        `${field} must contain ${min}-${max} characters.`\n      );\n    }\n\n    if (/[\\r\\n\\u0000]/.test(value) && field !== 'message') {\n      errors.push(`${field} must be a single line.`);\n    }\n\n    return value;\n  };\n\n  const name = text('name', 2, 100);\n  const email = text('email', 3, 254).toLowerCase();\n  const company = text('company', 2, 100);\n  const message = text('message', 20, 4000);\n\n  if (!/^[^\\s@<>]+@[^\\s@<>]+\\.[^\\s@<>]+$/.test(email)) {\n    errors.push('email must be a valid address.');\n  }\n\n  if (!['email-workflows', 'form-to-sheets'].includes(input.service)) {\n    errors.push('Choose email-workflows or form-to-sheets.');\n  }\n\n  if (\n    !['this-month', 'next-quarter', 'exploring'].includes(input.timeline)\n  ) {\n    errors.push('Choose a supported timeline.');\n  }\n\n  // An omitted budget or null means the prospect is undecided.\n  // A provided zero stays zero.\n  const budgetUsd = input.budgetUsd ?? null;\n\n  if (\n    budgetUsd !== null &&\n    (\n      typeof budgetUsd !== 'number' ||\n      !Number.isInteger(budgetUsd) ||\n      budgetUsd < 0 ||\n      budgetUsd > 1000000\n    )\n  ) {\n    errors.push(\n      'budgetUsd must be an integer from 0 to 1000000, or omitted if undecided.'\n    );\n  }\n\n  if (input.consent !== true) {\n    errors.push('Consent to processing this inquiry is required.');\n  }\n\n  if (errors.length > 0) {\n    return {\n      valid: false,\n      errors\n    };\n  }\n\n  return {\n    valid: true,\n    lead: {\n      name,\n      email,\n      company,\n      message,\n      service: input.service,\n      timeline: input.timeline,\n      budgetUsd\n    }\n  };\n}\nreturn $input.all().map(item => ({ json: normalizeLead(item.json.body) }));"
+      },
       "name": "Validate Inquiry",
-      "id": "validate-inquiry",
+      "id": "7ccafc5a-de0c-4c69-9738-543e8982cdec",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        240,
-        0
-      ],
-      "parameters": {
-        "jsCode": "function normalizeLead(input) {\n  if (!input || typeof input !== 'object' || Array.isArray(input)) {\n    return { valid: false, errors: ['Expected a JSON object.'] };\n  }\n  const errors = [];\n  const text = (field, min, max) => {\n    const value = typeof input[field] === 'string' ? input[field].trim() : '';\n    if (value.length < min || value.length > max) errors.push(`${field} must contain ${min}-${max} characters.`);\n    if (/[\\r\\n\\u0000]/.test(value) && field !== 'message') errors.push(`${field} must be a single line.`);\n    return value;\n  };\n  const name = text('name', 2, 100);\n  const email = text('email', 3, 254).toLowerCase();\n  const company = text('company', 2, 100);\n  const message = text('message', 20, 4000);\n  if (!/^[^\\s@<>]+@[^\\s@<>]+\\.[^\\s@<>]+$/.test(email)) errors.push('email must be a valid address.');\n  if (!['automation', 'integration', 'reporting'].includes(input.service)) errors.push('Choose a supported service.');\n  if (!['this-month', 'next-quarter', 'exploring'].includes(input.timeline)) errors.push('Choose a supported timeline.');\n  if (typeof input.budgetUsd !== 'number' || !Number.isInteger(input.budgetUsd) || input.budgetUsd < 0 || input.budgetUsd > 1000000) {\n    errors.push('budgetUsd must be an integer from 0 to 1000000.');\n  }\n  if (input.consent !== true) errors.push('Consent to processing this inquiry is required.');\n  if (errors.length) return { valid: false, errors };\n  return {\n    valid: true,\n    lead: {name, email, company, message, service:input.service, timeline:input.timeline, budgetUsd:input.budgetUsd},\n  };\n}\nreturn $input.all().map(item => ({json:normalizeLead(item.json.body)}));"
-      }
+        -480,
+        112
+      ]
     },
     {
-      "name": "Valid Inquiry?",
-      "id": "valid-inquiry",
-      "type": "n8n-nodes-base.if",
-      "typeVersion": 2.2,
-      "position": [
-        480,
-        0
-      ],
       "parameters": {
         "conditions": {
           "options": {
@@ -67,67 +55,219 @@
           "combinator": "and"
         },
         "options": {}
-      }
+      },
+      "name": "Valid Inquiry?",
+      "id": "b95293d1-50b0-463b-9fb1-c2ac9ad28030",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -240,
+        112
+      ]
     },
     {
+      "parameters": {
+        "jsCode": "function qualifyLead(lead) {\n  const rules = {\n    'this-month': {\n      priority: 'Priority',\n      reason: 'The prospect wants to start this month.',\n      nextStep:\n        'Review scope and availability before arranging a discovery call.'\n    },\n    'next-quarter': {\n      priority: 'Standard',\n      reason: 'The prospect is planning for next quarter.',\n      nextStep:\n        'Review the process, tools, and desired outcome.'\n    },\n    'exploring': {\n      priority: 'Discovery',\n      reason: 'The prospect is exploring possible improvements.',\n      nextStep:\n        'Ask which repetitive task they want to improve first.'\n    }\n  };\n\n  const rule = rules[lead.timeline];\n\n  if (!rule) {\n    throw new Error('Unsupported timeline reached qualification.');\n  }\n\n  return {\n    priority: rule.priority,\n    reasons: [\n      'The selected service is supported.',\n      rule.reason,\n      lead.budgetUsd === null\n        ? 'Budget is undecided and can be discussed during review.'\n        : 'Budget is provided for discussion and does not affect review order.'\n    ],\n    nextStep: rule.nextStep\n  };\n}\nreturn $input.all().map(item => ({ json: { ...item.json, qualification: qualifyLead(item.json.lead) } }));"
+      },
       "name": "Qualify Lead",
-      "id": "qualify-lead",
+      "id": "fedb992a-8cff-423f-81cc-91f43bfa2808",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        720,
-        -100
-      ],
-      "parameters": {
-        "jsCode": "function qualifyLead(lead) {\n  const reasons = [{label:'Complete inquiry', points:20}];\n  const budgetPoints = lead.budgetUsd >= 5000 ? 35 : lead.budgetUsd >= 1000 ? 20 : 0;\n  const timelinePoints = lead.timeline === 'this-month' ? 30 : lead.timeline === 'next-quarter' ? 15 : 0;\n  const servicePoints = lead.service === 'automation' ? 15 : 10;\n  reasons.push({label:'Budget fit', points:budgetPoints});\n  reasons.push({label:'Timeline', points:timelinePoints});\n  reasons.push({label:'Service fit', points:servicePoints});\n  const score = reasons.reduce((total, reason) => total + reason.points, 0);\n  const priority = score >= 75 ? 'Priority' : score >= 40 ? 'Standard' : 'Discovery';\n  const nextStep = priority === 'Priority' ? 'Review for a discovery call' : priority === 'Standard' ? 'Review scope and ask for missing details' : 'Review goals before recommending a service';\n  return {score, priority, reasons, nextStep};\n}\nreturn $input.all().map(item => ({json:{...item.json, qualification:qualifyLead(item.json.lead)}}));"
-      }
+        0,
+        0
+      ]
     },
     {
+      "parameters": {
+        "jsCode": "function prepareHandoff(lead, qualification) {\n  const request = qualification.priority === 'Priority'\n    ? 'Could you share two suitable times for a discovery call and the tools involved in your current process?'\n    : qualification.priority === 'Standard'\n      ? 'Could you share the main steps in your process, the tools involved, and the outcome you want to improve?'\n      : 'Could you share which repetitive task you want to improve first and roughly how often it happens?';\n  return {\n    status:'Ready for human review',\n    nextStep:qualification.nextStep,\n    draft:{\n      to:lead.email,\n      subject:'Your automation inquiry',\n      body:`Hi ${lead.name},\\n\\nThanks for sharing your inquiry. ${request}\\n\\nBest regards,\\nHanz`,\n      automaticallySent:false,\n    },\n  };\n}\nreturn $input.all().map(item => ({ json: { ...item.json, handoff: prepareHandoff(item.json.lead, item.json.qualification) } }));"
+      },
       "name": "Prepare Review Handoff",
-      "id": "prepare-review-handoff",
+      "id": "68f1948b-7646-4313-bc80-9846c9a28433",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        960,
-        -100
-      ],
-      "parameters": {
-        "jsCode": "function prepareHandoff(lead, qualification) {\n  const request = qualification.priority === 'Priority'\n    ? 'Could you share two suitable times for a discovery call and the tools involved in your current process?'\n    : qualification.priority === 'Standard'\n      ? 'Could you share the main steps in your process, the tools involved, and the outcome you want to improve?'\n      : 'Could you share which repetitive task you want to improve first and roughly how often it happens?';\n  return {\n    status:'Ready for human review',\n    nextStep:qualification.nextStep,\n    draft:{\n      to:lead.email,\n      subject:'Your automation inquiry',\n      body:`Hi ${lead.name},\\n\\nThanks for sharing your inquiry. ${request}\\n\\nBest regards,\\nHanz`,\n      automaticallySent:false,\n    },\n  };\n}\nreturn $input.all().map(item => ({json:{...item.json, handoff:prepareHandoff(item.json.lead,item.json.qualification)}}));"
-      }
+        240,
+        0
+      ]
     },
     {
-      "name": "Return Qualified Lead",
-      "id": "return-qualified",
-      "type": "n8n-nodes-base.respondToWebhook",
-      "typeVersion": 1.4,
-      "position": [
-        1200,
-        -100
-      ],
       "parameters": {
         "respondWith": "json",
-        "responseBody": "={{ $json }}",
+        "responseBody": "={{ $('Prepare Review Handoff').item.json }}",
         "options": {
           "responseCode": 200
         }
-      }
-    },
-    {
-      "name": "Return Validation Errors",
-      "id": "return-invalid",
+      },
+      "name": "Return Qualified Lead",
+      "id": "191c9f31-6a89-4cac-b79b-fe8c22a914fb",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.4,
       "position": [
-        720,
-        180
-      ],
+        688,
+        0
+      ]
+    },
+    {
       "parameters": {
         "respondWith": "json",
         "responseBody": "={{ $json }}",
         "options": {
           "responseCode": 422
         }
-      }
+      },
+      "name": "Return Validation Errors",
+      "id": "52884ccc-510f-4d6e-98bc-390563615918",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        0,
+        288
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "REPLACE_SPREADSHEET_ID",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "Leads",
+          "mode": "name"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Received At": "={{ $now.setZone('Asia/Taipei').toISO() }}",
+            "Name": "={{ $json.lead.name }}",
+            "Email": "={{ $json.lead.email }}",
+            "Company": "={{ $json.lead.company }}",
+            "Service": "={{ $json.lead.service }}",
+            "Timeline": "={{ $json.lead.timeline }}",
+            "Budget USD": "={{ $json.lead.budgetUsd ?? 'Undecided' }}",
+            "Message": "={{ $json.lead.message }}",
+            "Priority": "={{ $json.qualification.priority }}",
+            "Next Step": "={{ $json.qualification.nextStep }}",
+            "Review Status": "New"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "Received At",
+              "displayName": "Received At",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Name",
+              "displayName": "Name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Email",
+              "displayName": "Email",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Company",
+              "displayName": "Company",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Service",
+              "displayName": "Service",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Timeline",
+              "displayName": "Timeline",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Budget USD",
+              "displayName": "Budget USD",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Message",
+              "displayName": "Message",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Priority",
+              "displayName": "Priority",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Next Step",
+              "displayName": "Next Step",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Review Status",
+              "displayName": "Review Status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        448,
+        0
+      ],
+      "id": "d431056b-8278-431b-a762-a82c8e7bd128",
+      "name": "Save Inquiry"
     }
   ],
   "connections": {
@@ -186,6 +326,17 @@
       "main": [
         [
           {
+            "node": "Save Inquiry",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Save Inquiry": {
+      "main": [
+        [
+          {
             "node": "Return Qualified Lead",
             "type": "main",
             "index": 0
@@ -193,5 +344,10 @@
         ]
       ]
     }
-  }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "active": false
 }

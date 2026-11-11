@@ -1,9 +1,9 @@
 {
   "name": "lead-intake-automation",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": true,
   "type": "module",
-  "description": "Deterministic n8n lead validation, qualification and human-review handoff prototype.",
+  "description": "Manually tested n8n inquiry validation, timeline-based review, Google Sheets tracking and human-review draft handoff.",
   "engines": { "node": ">=22" },
   "scripts": {
     "build": "node scripts/build-workflow.mjs",

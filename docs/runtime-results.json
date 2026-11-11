@@ -1,4 +1,5 @@
 {
+  "scope": "Historical HTTP results for the initial seven-node scoring starter. These results predate the current eight-node Sheets workflow; see VERIFICATION.md for current evidence.",
   "n8nVersion": "2.47.3",
   "scenarios": [
     {
